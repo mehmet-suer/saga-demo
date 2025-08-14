@@ -1,0 +1,5 @@
+2025-08-14 13:20:53.953510+03:00 jdbc[41]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "SELECT * FROM ORDERS \000d\000a\000d\000a[*]SELECT count(1) FROM ORDERS"; SQL statement:
+SELECT * FROM ORDERS 
+
+SELECT count(1) FROM ORDERS [42000-232]

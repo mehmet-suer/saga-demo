@@ -1,0 +1,9 @@
+package com.saga.order.model;
+
+public enum EventType {
+    ORDER_CREATED,
+    INVENTORY_RESERVATION_COMPLETED,
+    INVENTORY_RESERVATION_FAILED,
+    ORDER_PAYMENT_COMPLETED,
+    ORDER_PAYMENT_FAILED;
+}

@@ -1,0 +1,18 @@
+spring:
+  kafka:
+    bootstrap-servers: localhost:9092
+    streams:
+      application-id: order-status-streamer
+      default-key-serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+      default-value-serde: org.springframework.kafka.support.serializer.JsonSerde
+    properties:
+      spring.json.trusted.packages: "com.saga.streamer.model"
+
+kafka:
+  topics:
+    orderStatusUpdates: order-status-updates
+    orderCreated: order-events-created
+    orderPaymentCompleted: payment-events-completed
+    orderPaymentFailed: payment-events-failed
+    inventoryReservationCompleted: inventory-events-completed
+    inventoryReservationFailed: inventory-events-failed

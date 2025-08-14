@@ -1,0 +1,14 @@
+# Java/Gradle
+**/build/
+**/out/
+.gradle/
+!.mvn/wrapper/maven-wrapper.jar
+*.log
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
