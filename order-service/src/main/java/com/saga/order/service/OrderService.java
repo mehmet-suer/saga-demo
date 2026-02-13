@@ -6,6 +6,7 @@ import com.saga.order.config.KafkaTopicProperties;
 import com.saga.order.model.EventType;
 import com.saga.order.model.OrderStatus;
 import com.saga.order.model.constant.KafkaHeaders;
+import com.saga.order.model.dto.request.CreateOrderRequest;
 import com.saga.order.model.entity.IdempotentEvent;
 import com.saga.order.model.entity.Order;
 import com.saga.order.model.entity.ProcessedEvent;
@@ -51,25 +52,18 @@ public class OrderService {
 
 
     @Transactional
-    public UUID createOrder(String userId, String productId) {
-        UUID orderId = saveOrder(userId, productId);
-        EventType eventType = EventType.ORDER_CREATED;
-        persistProcessedEvent(userId, productId, orderId, eventType);
-        return orderId;
-    }
-
-    public UUID saveOrder(String userId, String productId) {
-        UUID orderId = UUID.randomUUID();
-        Order order = new Order(orderId, userId, productId);
+    public void createOrder(CreateOrderRequest req) {
+        Order order = new Order(req.orderId(), req.userId(), req.productId());
         order.setStatus(OrderStatus.CREATED);
         orderRepository.save(order);
-        return orderId;
+        persistProcessedEvent(req.orderId(), req.userId(), req.productId(), EventType.ORDER_CREATED);
     }
 
-    private void persistProcessedEvent(String userId,
-                                       String productId,
-                                       UUID orderId,
-                                       EventType eventType) {
+    private void persistProcessedEvent(
+            UUID orderId,
+            String userId,
+            String productId,
+            EventType eventType) {
         OrderCreatedEvent event = new OrderCreatedEvent(orderId, userId, productId, UUID.randomUUID(), UUID.randomUUID(), Math.abs(orderId.hashCode()) % 20);
         String payload = getPayload(event);
         String headerPayload = getHeadersPayload(event);
@@ -169,7 +163,7 @@ public class OrderService {
     }
 
     @Transactional
-    public void markTimedOut(Order  order,  OrderStatus orderStatus, String reason, Instant timeoutTime, List<OrderStatus> pendingStates, Instant cutoff) {
+    public void markTimedOut(Order order, OrderStatus orderStatus, String reason, Instant timeoutTime, List<OrderStatus> pendingStates, Instant cutoff) {
         orderRepository.markTimedOut(order.getId(), order.getVersion(), orderStatus, reason, timeoutTime, pendingStates, cutoff);
     }
 }

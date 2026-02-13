@@ -31,14 +31,13 @@ public class OutboxEventScheduler {
         try {
             unsentEvents = processedEventService.findUnsentEvents();
         } catch (Exception e) {
-            log.error("Outbox fetch failed", e);
+            log.error("Failed to get unsent events", e);
             return;
         }
 
         for (ProcessedEvent event : unsentEvents) {
             try {
                 outboxExecutor.submit(() -> processedEventService.process(event));
-                ;
             } catch (RejectedExecutionException rex) {
                 log.warn("Outbox executor queue is full; will retry in next tick", rex);
                 break;

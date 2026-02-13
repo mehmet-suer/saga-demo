@@ -1,7 +1,9 @@
 package com.saga.order.controller;
 
+import com.saga.order.model.dto.request.CreateOrderRequest;
 import com.saga.order.model.entity.Order;
 import com.saga.order.service.OrderService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.constraints.NotBlank;
@@ -20,9 +22,9 @@ public class OrderController {
     }
 
     @PostMapping
-    public ResponseEntity<UUID> createOrder(@RequestParam @NotBlank String userId, @RequestParam @NotBlank String productId) {
-        UUID orderId = orderService.createOrder(userId, productId);
-        return ResponseEntity.ok(orderId);
+    public ResponseEntity<Void> createOrder(@RequestBody @Valid CreateOrderRequest req) {
+        orderService.createOrder(req);
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping
