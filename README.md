@@ -1,6 +1,16 @@
-# Saga Pattern Microservices Implementation
+#  Saga Pattern Microservices Implementation
 
 A distributed e-commerce system demonstrating **Saga Pattern** with **Choreography** approach using **Event-Driven Architecture**.
+
+## Architecture
+
+```
+Order Service → Payment Service → Inventory Service
+     ↓              ↓              ↓
+OrderCreated → PaymentCompleted → InventoryReserved
+     ↓              ↓              ↓
+   Success      Compensation    Rollback
+```
 
 ## Features
 
@@ -41,7 +51,10 @@ cd inventory-service && ./gradlew bootRun
 ### Test Saga Flow
 ```bash
 # Create Order
-curl --location --request POST 'http://localhost:9005/api/orders?userId=24234&productId=15'
+curl -X POST "http://localhost:9005/api/orders?userId=user123&productId=prod456"
+
+# Check Order Status
+curl "http://localhost:9005/api/orders?userId=user123&productId=prod456"
 
 # Init Product
 curl --location --request POST 'http://localhost:9007/api/inventory/init?productId=15&qty=5000'
@@ -67,6 +80,6 @@ curl --location --request POST 'http://localhost:9007/api/inventory/init?product
 ├── order-service/          # Order management & saga orchestration
 ├── payment-service/        # Payment processing & compensation
 ├── inventory-service/      # Inventory reservation
-└── order-status-streamer/  # Real-time order status aggregation
+└── order-status-streamer/ # Real-time order status aggregation
 ```
 

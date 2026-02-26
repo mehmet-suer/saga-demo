@@ -1,7 +1,9 @@
 package com.saga.order.model.constant;
 
-public interface KafkaHeaders {
-    String EVENT_ID = "eventId";
-    String TRACE_ID = "traceId";
-    String TYPE = "type";
+public final class KafkaHeaders {
+    private KafkaHeaders() {}
+    
+    public static String EVENT_ID = "eventId";
+    public static String TRACE_ID = "traceId";
+    public static String TYPE = "type";
 }

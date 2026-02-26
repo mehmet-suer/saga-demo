@@ -1,6 +1,8 @@
 package com.saga.order.model.entity;
 
 import com.saga.order.model.OrderStatus;
+import com.saga.order.model.InventoryState;
+import com.saga.order.model.PaymentState;
 import jakarta.persistence.*;
 
 import java.time.Instant;
@@ -23,6 +25,14 @@ public class Order {
     @Column(nullable = false, length = 50)
     private OrderStatus status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 50)
+    private PaymentState paymentState;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 50)
+    private InventoryState inventoryState;
+
     @Column(nullable = false)
     private Instant createdAt;
 
@@ -44,6 +54,8 @@ public class Order {
         this.userId = userId;
         this.productId = productId;
         this.status = OrderStatus.CREATED;
+        this.paymentState = PaymentState.PENDING;
+        this.inventoryState = InventoryState.PENDING;
     }
 
     @PrePersist
@@ -51,6 +63,12 @@ public class Order {
         var now = Instant.now();
         this.createdAt = now;
         this.updatedAt = now;
+        if (this.paymentState == null) {
+            this.paymentState = PaymentState.PENDING;
+        }
+        if (this.inventoryState == null) {
+            this.inventoryState = InventoryState.PENDING;
+        }
     }
 
     @PreUpdate
@@ -59,23 +77,75 @@ public class Order {
     }
 
     public void markPaymentCompleted() {
-        this.status = OrderStatus.PAYMENT_COMPLETED;
+        if (isTerminal() || this.paymentState == PaymentState.FAILED || this.paymentState == PaymentState.COMPLETED) {
+            return;
+        }
+        if (this.inventoryState == InventoryState.FAILED) {
+            return;
+        }
+        this.paymentState = PaymentState.COMPLETED;
         this.failureReason = null;
+        refreshAggregateStatus();
     }
 
     public void markPaymentFailed(String reason) {
-        this.status = OrderStatus.PAYMENT_FAILED;
+        if (isTerminal() || this.paymentState == PaymentState.FAILED) {
+            return;
+        }
+        this.paymentState = PaymentState.FAILED;
         this.failureReason = reason;
+        refreshAggregateStatus();
     }
 
     public void markInventoryReserved() {
-        this.status = OrderStatus.INVENTORY_RESERVED;
+        if (isTerminal() || this.inventoryState == InventoryState.FAILED || this.inventoryState == InventoryState.RESERVED) {
+            return;
+        }
+        if (this.paymentState == PaymentState.FAILED) {
+            return;
+        }
+        this.inventoryState = InventoryState.RESERVED;
         this.failureReason = null;
+        refreshAggregateStatus();
     }
 
     public void markInventoryFailed(String reason) {
-        this.status = OrderStatus.INVENTORY_FAILED;
+        if (isTerminal() || this.inventoryState == InventoryState.FAILED) {
+            return;
+        }
+        if (this.inventoryState == InventoryState.RESERVED || this.paymentState == PaymentState.FAILED) {
+            return;
+        }
+        this.inventoryState = InventoryState.FAILED;
         this.failureReason = reason;
+        refreshAggregateStatus();
+    }
+
+    private void refreshAggregateStatus() {
+        if (isTerminal()) {
+            return;
+        }
+        if (this.paymentState == PaymentState.FAILED) {
+            this.status = OrderStatus.PAYMENT_FAILED;
+            return;
+        }
+        if (this.inventoryState == InventoryState.FAILED) {
+            this.status = OrderStatus.INVENTORY_FAILED;
+            return;
+        }
+        if (this.paymentState == PaymentState.COMPLETED && this.inventoryState == InventoryState.RESERVED) {
+            this.status = OrderStatus.DONE;
+            return;
+        }
+        if (this.paymentState == PaymentState.COMPLETED) {
+            this.status = OrderStatus.PAYMENT_COMPLETED;
+            return;
+        }
+        this.status = OrderStatus.CREATED;
+    }
+
+    private boolean isTerminal() {
+        return this.status == OrderStatus.CANCELLED || this.status == OrderStatus.DONE;
     }
 
     public UUID getId() {
@@ -108,6 +178,22 @@ public class Order {
 
     public void setStatus(OrderStatus status) {
         this.status = status;
+    }
+
+    public PaymentState getPaymentState() {
+        return paymentState;
+    }
+
+    public void setPaymentState(PaymentState paymentState) {
+        this.paymentState = paymentState;
+    }
+
+    public InventoryState getInventoryState() {
+        return inventoryState;
+    }
+
+    public void setInventoryState(InventoryState inventoryState) {
+        this.inventoryState = inventoryState;
     }
 
     public Instant getCreatedAt() {

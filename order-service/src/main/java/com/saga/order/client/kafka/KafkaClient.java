@@ -1,8 +1,9 @@
 package com.saga.order.client.kafka;
 
-import java.util.Map;
+import com.saga.order.model.dto.KafkaSendAck;
+
+import java.util.concurrent.CompletableFuture;
 
 public interface KafkaClient {
-    void send(String topic, String key, Object event, Map<String, String> headers);
-    void send(String topic, String key, String payload, String headers);
+    CompletableFuture<KafkaSendAck> send(String topic, String key, String payload, String headers);
 }

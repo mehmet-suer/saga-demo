@@ -1,0 +1,23 @@
+ALTER TABLE orders
+    ADD COLUMN IF NOT EXISTS payment_state VARCHAR(50),
+    ADD COLUMN IF NOT EXISTS inventory_state VARCHAR(50);
+
+UPDATE orders
+SET payment_state = CASE
+    WHEN status IN ('PAYMENT_COMPLETED', 'INVENTORY_RESERVED', 'INVENTORY_FAILED') THEN 'COMPLETED'
+    WHEN status = 'PAYMENT_FAILED' THEN 'FAILED'
+    ELSE 'PENDING'
+END
+WHERE payment_state IS NULL;
+
+UPDATE orders
+SET inventory_state = CASE
+    WHEN status = 'INVENTORY_RESERVED' THEN 'RESERVED'
+    WHEN status = 'INVENTORY_FAILED' THEN 'FAILED'
+    ELSE 'PENDING'
+END
+WHERE inventory_state IS NULL;
+
+ALTER TABLE orders
+    ALTER COLUMN payment_state SET NOT NULL,
+    ALTER COLUMN inventory_state SET NOT NULL;

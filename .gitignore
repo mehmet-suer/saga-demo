@@ -1,6 +1,7 @@
 # Java/Gradle
 **/build/
 **/out/
+**/bin/
 .gradle/
 !.mvn/wrapper/maven-wrapper.jar
 *.log
@@ -9,6 +10,17 @@
 .idea/
 *.iml
 .vscode/
+
+# Metals / Bloop
+**/.metals/
+**/.bloop/
+**/.scala-build/
+
+# Local DB artifacts (H2 vb.)
+**/data/*.mv.db
+**/data/*.trace.db
+**/data/*.lock.db
+**/*.lck
 
 # OS
 .DS_Store

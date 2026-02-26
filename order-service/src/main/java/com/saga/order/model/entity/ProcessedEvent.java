@@ -1,9 +1,11 @@
 package com.saga.order.model.entity;
 
 import com.saga.order.model.EventType;
+import com.saga.order.model.ProcessedEventStatus;
 import jakarta.persistence.*;
 
 import java.time.Instant;
+import java.util.Objects;
 import java.util.UUID;
 
 @Entity
@@ -16,7 +18,7 @@ public class ProcessedEvent {
 
     private UUID eventId;
 
-    @Column(name = "event_key")
+    @Column(name = "event_key", nullable = false)
     private UUID key;
 
     @Enumerated(EnumType.STRING)
@@ -24,16 +26,18 @@ public class ProcessedEvent {
 
     private Instant processedAt;
 
+    @Column(name = "created_at")
+    private Instant createdAt;
+
     private String topic;
 
     @Version
     private int version;
 
-    @Lob
+    @Column(columnDefinition = "TEXT")
     private String payload;
 
-    @Lob
-    @Column(name = "headers_payload")
+    @Column(name = "headers_payload", columnDefinition = "TEXT")
     private String headersPayload;
 
 
@@ -43,6 +47,15 @@ public class ProcessedEvent {
 
     private Instant lastTriedAt;
 
+    @Enumerated(EnumType.STRING)
+    private ProcessedEventStatus status;
+
+    @Column(name = "locked_until")
+    private Instant lockedUntil;
+
+    @Column(name = "next_retry_at")
+    private Instant nextRetryAt;
+
     public ProcessedEvent() {}
 
     public ProcessedEvent(UUID eventId, EventType eventType, String payload, String headerPayload, UUID key, String topic) {
@@ -50,10 +63,13 @@ public class ProcessedEvent {
         this.eventType = eventType;
         this.payload = payload;
         this.headersPayload = headerPayload;
-        this.key = key;
+        this.key = Objects.requireNonNull(key, "event key must not be null");
         this.topic = topic;
         this.sent = false;
-        this.processedAt = Instant.now();
+        this.status = ProcessedEventStatus.NEW;
+        Instant now = Instant.now();
+        this.processedAt = now;
+        this.createdAt = now;
     }
 
     public UUID getEventId() {
@@ -70,6 +86,14 @@ public class ProcessedEvent {
 
     public void setProcessedAt(Instant processedAt) {
         this.processedAt = processedAt;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
     }
 
 
@@ -101,12 +125,36 @@ public class ProcessedEvent {
         this.lastTriedAt = now;
     }
 
-    public void incrementRetryCount() {
-        this.retryCount = retryCount + 1;
+    public int getRetryCount() {
+        return retryCount;
     }
 
     public Instant getLastTriedAt() {
         return lastTriedAt;
+    }
+
+    public ProcessedEventStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(ProcessedEventStatus status) {
+        this.status = status;
+    }
+
+    public Instant getLockedUntil() {
+        return lockedUntil;
+    }
+
+    public void setLockedUntil(Instant lockedUntil) {
+        this.lockedUntil = lockedUntil;
+    }
+
+    public Instant getNextRetryAt() {
+        return nextRetryAt;
+    }
+
+    public void setNextRetryAt(Instant nextRetryAt) {
+        this.nextRetryAt = nextRetryAt;
     }
 
     public UUID getKey() {

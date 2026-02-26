@@ -1,14 +1,13 @@
 package com.saga.order.service;
 
 import com.saga.order.model.EventType;
-import com.saga.order.model.entity.IdempotentEvent;
 import com.saga.order.repository.IdempotentEventRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Optional;
+import java.time.Instant;
 import java.util.UUID;
 
 @Service
@@ -22,12 +21,12 @@ public class IdempotentEventService {
     }
 
     @Transactional
-    public void save(IdempotentEvent idempotentEvent) {
-        repository.save(idempotentEvent);
+    public boolean claim(UUID eventId, EventType eventType) {
+        int inserted = repository.tryInsert(eventId, eventType.name(), Instant.now());
+        if (inserted == 0) {
+            log.warn("Already processed: eventId={} eventType={}", eventId, eventType);
+            return false;
+        }
+        return true;
     }
-
-    public Optional<IdempotentEvent> findByIdAndEventType(UUID uuid, EventType eventType) {
-        return repository.findByEventIdAndEventType(uuid, eventType);
-    }
-
 }

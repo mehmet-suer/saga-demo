@@ -15,7 +15,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
-@EnableConfigurationProperties({KafkaTopicProperties.class})
+@EnableConfigurationProperties({KafkaTopicProperties.class, OutboxProperties.class, OrderTimeoutProperties.class})
 public class KafkaConfig {
 
     @Bean(name = "kafkaTopicProperties")
@@ -47,4 +47,3 @@ public class KafkaConfig {
         return new KafkaTemplate<>(pf);
     }
 }
-

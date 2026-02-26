@@ -100,7 +100,9 @@ public class KafkaListenersConfig {
 
             @Override
             public void afterRecord(ConsumerRecord<String, T> record, Consumer<String, T> consumer) {
-                MDC.clear();
+                MDC.remove(KafkaHeaders.TYPE);
+                MDC.remove(KafkaHeaders.TRACE_ID);
+                MDC.remove(KafkaHeaders.EVENT_ID);
             }
         };
     }

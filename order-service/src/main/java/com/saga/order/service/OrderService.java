@@ -4,10 +4,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.saga.order.config.KafkaTopicProperties;
 import com.saga.order.model.EventType;
+import com.saga.order.model.InventoryState;
 import com.saga.order.model.OrderStatus;
+import com.saga.order.model.PaymentState;
 import com.saga.order.model.constant.KafkaHeaders;
 import com.saga.order.model.dto.request.CreateOrderRequest;
-import com.saga.order.model.entity.IdempotentEvent;
 import com.saga.order.model.entity.Order;
 import com.saga.order.model.entity.ProcessedEvent;
 import com.saga.order.model.event.in.InventoryReservationCompletedEvent;
@@ -23,7 +24,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -33,20 +33,14 @@ public class OrderService {
     private static final Logger log = LoggerFactory.getLogger(OrderService.class);
 
     private final OrderRepository orderRepository;
-    private final IdempotentEventService idempotentEventService;
     private final ProcessedEventService processedEventService;
     private final ObjectMapper objectMapper;
     private final KafkaTopicProperties kafkaTopicProperties;
 
-    public OrderService(OrderRepository orderRepository,
-                        IdempotentEventService idempotentEventService,
-                        ProcessedEventService processedEventService,
-                        ObjectMapper objectMapper,
-                        KafkaTopicProperties kafkaTopicProperties) {
+    public OrderService(OrderRepository orderRepository, ProcessedEventService processedEventService, ObjectMapper objectMapper, KafkaTopicProperties kafkaTopicProperties) {
         this.orderRepository = orderRepository;
         this.processedEventService = processedEventService;
         this.objectMapper = objectMapper;
-        this.idempotentEventService = idempotentEventService;
         this.kafkaTopicProperties = kafkaTopicProperties;
     }
 
@@ -59,12 +53,8 @@ public class OrderService {
         persistProcessedEvent(req.orderId(), req.userId(), req.productId(), EventType.ORDER_CREATED);
     }
 
-    private void persistProcessedEvent(
-            UUID orderId,
-            String userId,
-            String productId,
-            EventType eventType) {
-        OrderCreatedEvent event = new OrderCreatedEvent(orderId, userId, productId, UUID.randomUUID(), UUID.randomUUID(), Math.abs(orderId.hashCode()) % 20);
+    private void persistProcessedEvent(UUID orderId, String userId, String productId, EventType eventType) {
+        var event = new OrderCreatedEvent(orderId, userId, productId, UUID.randomUUID(), UUID.randomUUID(), Math.abs(orderId.hashCode()) % 20);
         String payload = getPayload(event);
         String headerPayload = getHeadersPayload(event);
 
@@ -93,9 +83,8 @@ public class OrderService {
     }
 
     @Transactional
-    public void markPaymentCompleted(OrderPaymentCompletedEvent event, EventType eventType) {
+    public void markPaymentCompleted(OrderPaymentCompletedEvent event) {
         markPaymentCompleted(event.orderId());
-        persistIdempotent(event.eventId(), eventType);
     }
 
     private void markPaymentCompleted(UUID orderId) {
@@ -105,12 +94,11 @@ public class OrderService {
     }
 
     @Transactional
-    public void markPaymentFailed(OrderPaymentFailedEvent event, EventType eventType) {
-        markPaymentFailed(event);
-        persistIdempotent(event.eventId(), eventType);
+    public void markPaymentFailed(OrderPaymentFailedEvent event) {
+        applyPaymentFailed(event);
     }
 
-    private void markPaymentFailed(OrderPaymentFailedEvent event) {
+    private void applyPaymentFailed(OrderPaymentFailedEvent event) {
         Order order = getOrder(event.orderId());
         order.markPaymentFailed(event.reason());
         orderRepository.save(order);
@@ -118,9 +106,8 @@ public class OrderService {
 
 
     @Transactional
-    public void processInventoryReserved(InventoryReservationCompletedEvent event, EventType eventType) {
+    public void processInventoryReserved(InventoryReservationCompletedEvent event) {
         markInventoryReserved(event);
-        persistIdempotent(event.eventId(), eventType);
     }
 
     private void markInventoryReserved(InventoryReservationCompletedEvent event) {
@@ -130,14 +117,8 @@ public class OrderService {
     }
 
     @Transactional
-    public void processInventoryReservationFailed(InventoryReservationFailedEvent event, EventType eventType) {
+    public void processInventoryReservationFailed(InventoryReservationFailedEvent event) {
         markInventoryFailed(event);
-        persistIdempotent(event.eventId(), eventType);
-    }
-
-    private void persistIdempotent(UUID eventId, EventType eventType) {
-        var idempotentEvent = new IdempotentEvent(eventId, eventType);
-        idempotentEventService.save(idempotentEvent);
     }
 
     private void markInventoryFailed(InventoryReservationFailedEvent event) {
@@ -147,8 +128,7 @@ public class OrderService {
     }
 
     private Order getOrder(UUID orderId) {
-        return orderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
+        return orderRepository.findById(orderId).orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
     }
 
 
@@ -156,14 +136,15 @@ public class OrderService {
         return orderRepository.findAll();
     }
 
-    public List<Order> findPendingOrdersBeforeCutoff(Collection<OrderStatus> pendingStatuses,
-                                                     Instant cutoff,
-                                                     Pageable pageable) {
-        return orderRepository.findPendingOrdersBeforeCutoff(pendingStatuses, cutoff, pageable);
+    public List<Order> findTimeoutCandidatesBeforeCutoff(PaymentState pendingPaymentState, PaymentState completedPaymentState, InventoryState pendingInventoryState, Instant cutoff, Pageable pageable) {
+        return orderRepository.findTimeoutCandidatesBeforeCutoff(pendingPaymentState, completedPaymentState, pendingInventoryState, cutoff, pageable);
     }
 
     @Transactional
-    public void markTimedOut(Order order, OrderStatus orderStatus, String reason, Instant timeoutTime, List<OrderStatus> pendingStates, Instant cutoff) {
-        orderRepository.markTimedOut(order.getId(), order.getVersion(), orderStatus, reason, timeoutTime, pendingStates, cutoff);
+    public void markTimedOut(Order order, OrderStatus orderStatus, String reason, Instant timeoutTime, List<OrderStatus> terminalStates, PaymentState pendingPaymentState, PaymentState completedPaymentState, InventoryState pendingInventoryState, Instant cutoff) {
+        int updated = orderRepository.markTimedOut(order.getId(), order.getVersion(), orderStatus, reason, timeoutTime, terminalStates, pendingPaymentState, completedPaymentState, pendingInventoryState, cutoff);
+        if (updated == 0) {
+            log.info("Timed-out update skipped for orderId={} version={} status={} paymentState={} inventoryState={}", order.getId(), order.getVersion(), order.getStatus(), order.getPaymentState(), order.getInventoryState());
+        }
     }
 }
