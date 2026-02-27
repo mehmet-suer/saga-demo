@@ -1,5 +1,6 @@
 package com.saga.order.service;
 
+import com.saga.common.idempotency.IdempotentEventService;
 import com.saga.order.model.EventType;
 import com.saga.order.model.event.in.InventoryReservationCompletedEvent;
 import com.saga.order.model.event.in.InventoryReservationFailedEvent;
@@ -13,10 +14,10 @@ import java.util.UUID;
 @Service
 public class InboundOrderEventService {
 
-    private final IdempotentEventService idempotentEventService;
+    private final IdempotentEventService<EventType> idempotentEventService;
     private final OrderService orderService;
 
-    public InboundOrderEventService(IdempotentEventService idempotentEventService, OrderService orderService) {
+    public InboundOrderEventService(IdempotentEventService<EventType> idempotentEventService, OrderService orderService) {
         this.idempotentEventService = idempotentEventService;
         this.orderService = orderService;
     }

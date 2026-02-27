@@ -2,7 +2,7 @@ package com.saga.order.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.saga.order.client.kafka.KafkaClient;
-import com.saga.order.exception.EventPublishException;
+import com.saga.common.kafkaoutbox.EventPublishException;
 import com.saga.order.model.entity.ProcessedEvent;
 import com.saga.order.repository.ProcessedEventRepository;
 import org.apache.kafka.common.errors.SerializationException;

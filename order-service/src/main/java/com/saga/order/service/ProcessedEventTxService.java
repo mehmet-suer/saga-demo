@@ -1,7 +1,7 @@
 package com.saga.order.service;
 
-import com.saga.order.config.OutboxProperties;
-import com.saga.order.model.ProcessedEventStatus;
+import com.saga.common.kafkaoutbox.OutboxProperties;
+import com.saga.common.kafkaoutbox.ProcessedEventStatus;
 import com.saga.order.model.entity.ProcessedEvent;
 import com.saga.order.repository.ProcessedEventRepository;
 import org.springframework.stereotype.Service;

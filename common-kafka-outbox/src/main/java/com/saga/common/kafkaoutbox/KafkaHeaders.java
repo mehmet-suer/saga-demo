@@ -1,4 +1,4 @@
-package com.saga.inventory.model.constant;
+package com.saga.common.kafkaoutbox;
 
 public interface KafkaHeaders {
     String EVENT_ID = "eventId";

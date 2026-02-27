@@ -1,6 +1,6 @@
 package com.saga.inventory.config;
 
-import com.saga.inventory.model.constant.KafkaHeaders;
+import com.saga.common.kafkaoutbox.KafkaHeaders;
 import com.saga.inventory.model.event.in.OrderPaymentCompletedEvent;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -16,14 +16,14 @@ import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.listener.RecordInterceptor;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
-import org.springframework.stereotype.Component;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.util.backoff.FixedBackOff;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
-@Component
+@Configuration
 public class KafkaListenersConfig {
     private final KafkaProperties kafkaProperties;
     private final KafkaTemplate<String, Object> kafkaTemplate;
@@ -80,7 +80,9 @@ public class KafkaListenersConfig {
 
             @Override
             public void afterRecord(ConsumerRecord<String, T> record, Consumer<String, T> consumer) {
-                MDC.clear();
+                MDC.remove(KafkaHeaders.TYPE);
+                MDC.remove(KafkaHeaders.TRACE_ID);
+                MDC.remove(KafkaHeaders.EVENT_ID);
             }
         };
     }

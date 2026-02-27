@@ -1,6 +1,6 @@
 package com.saga.payment.config;
 
-import com.saga.payment.model.constant.KafkaHeaders;
+import com.saga.common.kafkaoutbox.KafkaHeaders;
 import com.saga.payment.model.event.in.InventoryReservationFailedEvent;
 import com.saga.payment.model.event.in.OrderCreatedEvent;
 import org.apache.kafka.clients.consumer.Consumer;
@@ -86,7 +86,9 @@ public class KafkaListenersConfig {
 
             @Override
             public void afterRecord(ConsumerRecord<String, T> record, Consumer<String, T> consumer) {
-                MDC.clear();
+                MDC.remove(KafkaHeaders.TYPE);
+                MDC.remove(KafkaHeaders.TRACE_ID);
+                MDC.remove(KafkaHeaders.EVENT_ID);
             }
         };
     }

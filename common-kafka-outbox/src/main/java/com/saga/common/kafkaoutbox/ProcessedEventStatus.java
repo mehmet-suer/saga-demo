@@ -1,4 +1,4 @@
-package com.saga.order.model;
+package com.saga.common.kafkaoutbox;
 
 /**
  * Outbox event lifecycle state.

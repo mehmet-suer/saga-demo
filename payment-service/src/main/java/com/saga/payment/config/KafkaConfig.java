@@ -1,11 +1,7 @@
 package com.saga.payment.config;
 
-
-import com.saga.payment.model.constant.KafkaHeaders;
-import org.apache.kafka.clients.consumer.Consumer;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
+import com.saga.common.kafkaoutbox.OutboxProperties;
 import org.apache.kafka.clients.producer.ProducerConfig;
-import org.slf4j.MDC;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -13,15 +9,13 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
-import org.springframework.kafka.listener.RecordInterceptor;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
-@EnableConfigurationProperties(KafkaTopicProperties.class)
+@EnableConfigurationProperties({KafkaTopicProperties.class, OutboxProperties.class})
 public class KafkaConfig {
 
     @Bean(name = "kafkaTopicProperties")
@@ -53,8 +47,4 @@ public class KafkaConfig {
     KafkaTemplate<String, Object> dlqKafkaTemplate(ProducerFactory<String, Object> pf) {
         return new KafkaTemplate<>(pf);
     }
-
-
-
 }
-

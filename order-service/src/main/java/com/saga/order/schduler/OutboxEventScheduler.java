@@ -1,6 +1,6 @@
 package com.saga.order.schduler;
 
-import com.saga.order.config.OutboxProperties;
+import com.saga.common.kafkaoutbox.OutboxProperties;
 import com.saga.order.model.constant.ExecutorConstants;
 import com.saga.order.model.entity.ProcessedEvent;
 import com.saga.order.service.ProcessedEventService;

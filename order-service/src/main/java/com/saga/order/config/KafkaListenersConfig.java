@@ -1,6 +1,6 @@
 package com.saga.order.config;
 
-import com.saga.order.model.constant.KafkaHeaders;
+import com.saga.common.kafkaoutbox.KafkaHeaders;
 import com.saga.order.model.event.in.InventoryReservationCompletedEvent;
 import com.saga.order.model.event.in.InventoryReservationFailedEvent;
 import com.saga.order.model.event.in.OrderPaymentCompletedEvent;

@@ -5,8 +5,8 @@ import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
-import com.saga.order.exception.EventPublishException;
-import com.saga.order.model.dto.KafkaSendAck;
+import com.saga.common.kafkaoutbox.EventPublishException;
+import com.saga.common.kafkaoutbox.KafkaSendAck;
 import jakarta.annotation.Nonnull;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.kafka.core.KafkaTemplate;

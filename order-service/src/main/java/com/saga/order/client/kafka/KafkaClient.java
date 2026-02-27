@@ -1,6 +1,6 @@
 package com.saga.order.client.kafka;
 
-import com.saga.order.model.dto.KafkaSendAck;
+import com.saga.common.kafkaoutbox.KafkaSendAck;
 
 import java.util.concurrent.CompletableFuture;
 

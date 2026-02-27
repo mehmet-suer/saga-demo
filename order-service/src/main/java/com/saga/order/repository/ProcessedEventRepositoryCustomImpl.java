@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Repository;
 
+import com.saga.common.kafkaoutbox.ProcessedEventStatus;
 import com.saga.order.model.entity.ProcessedEvent;
 
 import jakarta.persistence.EntityManager;
@@ -24,16 +25,16 @@ public class ProcessedEventRepositoryCustomImpl implements ProcessedEventReposit
                   SELECT id
                   FROM processed_events
                   WHERE (
-                    status = 'NEW'
-                    OR (status = 'IN_PROGRESS' AND locked_until < now())
-                    OR (status = 'RETRY' AND next_retry_at <= now())
+                    status = :newStatus
+                    OR (status = :inProgressStatus AND locked_until < now())
+                    OR (status = :retryStatus AND next_retry_at <= now())
                   )
                   ORDER BY created_at
                   FOR UPDATE SKIP LOCKED
                   LIMIT :limit
                 )
                 UPDATE processed_events e
-                SET status = 'IN_PROGRESS',
+                SET status = :inProgressStatus,
                     locked_until = now() + (:leaseSeconds || ' seconds')::interval,
                     retry_count = COALESCE(e.retry_count, 0) + 1
                 FROM batchToClaim
@@ -45,6 +46,9 @@ public class ProcessedEventRepositoryCustomImpl implements ProcessedEventReposit
         List<ProcessedEvent> claimed = em.createNativeQuery(sql, ProcessedEvent.class)
                 .setParameter("limit", limit)
                 .setParameter("leaseSeconds", Math.toIntExact(lease.getSeconds()))
+                .setParameter("newStatus", ProcessedEventStatus.NEW.name())
+                .setParameter("inProgressStatus", ProcessedEventStatus.IN_PROGRESS.name())
+                .setParameter("retryStatus", ProcessedEventStatus.RETRY.name())
                 .getResultList();
 
         return claimed;

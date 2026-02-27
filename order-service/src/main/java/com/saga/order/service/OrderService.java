@@ -7,7 +7,7 @@ import com.saga.order.model.EventType;
 import com.saga.order.model.InventoryState;
 import com.saga.order.model.OrderStatus;
 import com.saga.order.model.PaymentState;
-import com.saga.order.model.constant.KafkaHeaders;
+import com.saga.common.kafkaoutbox.KafkaHeaders;
 import com.saga.order.model.dto.request.CreateOrderRequest;
 import com.saga.order.model.entity.Order;
 import com.saga.order.model.entity.ProcessedEvent;

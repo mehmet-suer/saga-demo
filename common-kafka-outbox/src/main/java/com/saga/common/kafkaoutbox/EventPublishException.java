@@ -1,4 +1,4 @@
-package com.saga.order.exception;
+package com.saga.common.kafkaoutbox;
 
 public class EventPublishException extends RuntimeException {
 

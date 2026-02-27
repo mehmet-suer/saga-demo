@@ -3,21 +3,16 @@ server:
 
 spring:
   datasource:
-    url: jdbc:h2:file:./data/payment-db
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/payment_db}
+    driver-class-name: org.postgresql.Driver
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
 
   jpa:
     hibernate:
       ddl-auto: validate
     show-sql: false
-    database-platform: org.hibernate.dialect.H2Dialect
-
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
 
   flyway:
     enabled: true
@@ -36,10 +31,27 @@ spring:
         spring.json.trusted.packages: com.saga.*
         spring.json.fail-on-unknown-properties: false
     producer:
+      acks: all
       retries: 3
       retry-backoff-ms: 1000
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 5
+
+outbox:
+  batch:
+    size: 100
+  lease:
+    seconds: 180
+  retry:
+    interval:
+      seconds: 5
+    max:
+      attempts: 10
+  inflight:
+    limit: 100
 
 kafka:
   topics:

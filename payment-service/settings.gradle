@@ -1,1 +1,4 @@
 rootProject.name = 'payment-service'
+include(':common-kafka-outbox', ':common-idempotency')
+project(':common-kafka-outbox').projectDir = file('../common-kafka-outbox')
+project(':common-idempotency').projectDir = file('../common-idempotency')

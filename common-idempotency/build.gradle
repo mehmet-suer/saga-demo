@@ -1,0 +1,22 @@
+plugins {
+    id 'java-library'
+}
+
+group = 'com.saga.common'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    api(platform("org.springframework.boot:spring-boot-dependencies:3.5.4"))
+    api("org.springframework.boot:spring-boot")
+    api("org.springframework.data:spring-data-jpa")
+}

@@ -5,8 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.saga.inventory.config.KafkaTopicProperties;
 import com.saga.inventory.exception.OutboxSerializationException;
 import com.saga.inventory.model.EventType;
-import com.saga.inventory.model.constant.KafkaHeaders;
-import com.saga.inventory.model.entity.IdempotentEvent;
+import com.saga.common.kafkaoutbox.KafkaHeaders;
 import com.saga.inventory.model.entity.Inventory;
 import com.saga.inventory.model.entity.ProcessedEvent;
 import com.saga.inventory.model.event.Event;
@@ -27,18 +26,15 @@ public class InventoryService {
     private static final Logger log = LoggerFactory.getLogger(InventoryService.class);
     private final InventoryRepository repository;
     private final ProcessedEventService processedEventService;
-    private final IdempotentEventService idempotentEventService;
     private final ObjectMapper objectMapper;
     private final KafkaTopicProperties kafkaTopicProperties;
 
     public InventoryService(InventoryRepository repository,
                             ProcessedEventService processedEventService,
-                            IdempotentEventService idempotentEventService,
                             ObjectMapper objectMapper,
                             KafkaTopicProperties kafkaTopicProperties) {
         this.repository = repository;
         this.processedEventService = processedEventService;
-        this.idempotentEventService = idempotentEventService;
         this.objectMapper = objectMapper;
         this.kafkaTopicProperties = kafkaTopicProperties;
     }
@@ -60,14 +56,6 @@ public class InventoryService {
     public void process(OrderPaymentCompletedEvent event) {
         boolean inventoryReserved = reserve(event.productId());
         persistProcessedEvent(event, inventoryReserved);
-        persistIdempotentEventIfInventoryReserved(event, inventoryReserved);
-
-    }
-
-    private void persistIdempotentEventIfInventoryReserved(OrderPaymentCompletedEvent event, boolean inventoryReserved) {
-        if (inventoryReserved) {
-            idempotentEventService.save(new IdempotentEvent(event.getEventId(), EventType.INVENTORY_RESERVATION_COMPLETED));
-        }
     }
 
     private void persistProcessedEvent(OrderPaymentCompletedEvent event, boolean inventoryReserved) {

@@ -1,7 +1,7 @@
 package com.saga.order.model.entity;
 
 import com.saga.order.model.EventType;
-import com.saga.order.model.ProcessedEventStatus;
+import com.saga.common.kafkaoutbox.ProcessedEventStatus;
 import jakarta.persistence.*;
 
 import java.time.Instant;

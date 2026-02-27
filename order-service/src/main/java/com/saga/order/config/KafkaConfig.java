@@ -1,6 +1,7 @@
 package com.saga.order.config;
 
 
+import com.saga.common.kafkaoutbox.OutboxProperties;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;

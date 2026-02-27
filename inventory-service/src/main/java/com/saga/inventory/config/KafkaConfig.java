@@ -1,6 +1,7 @@
 package com.saga.inventory.config;
 
 
+import com.saga.common.kafkaoutbox.OutboxProperties;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -15,7 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
-@EnableConfigurationProperties(KafkaTopicProperties.class)
+@EnableConfigurationProperties({KafkaTopicProperties.class, OutboxProperties.class})
 public class KafkaConfig {
 
     @Bean(name = "kafkaTopicProperties")
@@ -47,4 +48,3 @@ public class KafkaConfig {
         return new KafkaTemplate<>(pf);
     }
 }
-

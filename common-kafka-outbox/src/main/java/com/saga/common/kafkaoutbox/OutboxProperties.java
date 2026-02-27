@@ -1,4 +1,4 @@
-package com.saga.order.config;
+package com.saga.common.kafkaoutbox;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

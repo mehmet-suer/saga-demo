@@ -1,13 +1,13 @@
 package com.saga.inventory.model.entity;
 
 import jakarta.persistence.*;
-import java.util.UUID;
 
 @Entity
 @Table(name = "inventory")
 public class Inventory {
 
     @Id
+    @Column(name = "product_id")
     private String productId;
 
     public Inventory(String productId, int availableQuantity) {
@@ -15,6 +15,7 @@ public class Inventory {
         this.availableQuantity = availableQuantity;
     }
 
+    @Column(name = "available_quantity")
     private int availableQuantity;
 
     public Inventory(){}

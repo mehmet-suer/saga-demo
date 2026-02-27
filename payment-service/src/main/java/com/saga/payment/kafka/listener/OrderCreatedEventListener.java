@@ -1,9 +1,7 @@
 package com.saga.payment.kafka.listener;
 
-import com.saga.payment.model.EventType;
 import com.saga.payment.model.event.in.OrderCreatedEvent;
-import com.saga.payment.service.IdempotentEventService;
-import com.saga.payment.service.PaymentService;
+import com.saga.payment.service.InboundPaymentEventService;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Validator;
@@ -19,14 +17,11 @@ public class OrderCreatedEventListener {
 
     private static final Logger log = LoggerFactory.getLogger(OrderCreatedEventListener.class);
 
-    private final PaymentService paymentService;
-    private final IdempotentEventService idempotentEventService;
+    private final InboundPaymentEventService inboundPaymentEventService;
     private final Validator validator;
 
-    public OrderCreatedEventListener(PaymentService paymentService, IdempotentEventService idempotentEventService, Validator validator) {
-
-        this.paymentService = paymentService;
-        this.idempotentEventService = idempotentEventService;
+    public OrderCreatedEventListener(InboundPaymentEventService inboundPaymentEventService, Validator validator) {
+        this.inboundPaymentEventService = inboundPaymentEventService;
         this.validator = validator;
     }
 
@@ -38,13 +33,7 @@ public class OrderCreatedEventListener {
     public void handle(OrderCreatedEvent event) {
         validate(event);
         try {
-            var eventType = EventType.ORDER_PAYMENT_COMPLETED;
-            var idempotentEvent = idempotentEventService.findByEventIdAndEventType(event.eventId(), eventType);
-            if (idempotentEvent.isPresent()) {
-                log.warn("Already successfully processed, skipping: {} " , event.eventId());
-                return;
-            }
-            paymentService.process(event, eventType);
+            inboundPaymentEventService.handle(event);
         } catch (Exception e) {
             log.error("Payment processing error: {} ", event.eventId(),  e);
             throw e;
@@ -59,6 +48,5 @@ public class OrderCreatedEventListener {
             throw new ConstraintViolationException(violations);
         }
     }
-
 
 }

@@ -6,8 +6,7 @@ import com.saga.payment.config.KafkaTopicProperties;
 import com.saga.payment.exception.OutboxSerializationException;
 import com.saga.payment.model.EventType;
 import com.saga.payment.model.PaymentStatus;
-import com.saga.payment.model.constant.KafkaHeaders;
-import com.saga.payment.model.entity.IdempotentEvent;
+import com.saga.common.kafkaoutbox.KafkaHeaders;
 import com.saga.payment.model.entity.Payment;
 import com.saga.payment.model.entity.ProcessedEvent;
 import com.saga.payment.model.event.Event;
@@ -21,8 +20,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.*;
 
 @Service
@@ -31,17 +28,17 @@ public class PaymentService {
 
     private final PaymentRepository repository;
     private final ProcessedEventService processedEventService;
-
-    private final IdempotentEventService idempotentEventService;
     private final ObjectMapper objectMapper;
     private final KafkaTopicProperties kafkaTopicProperties;
 
     private final Random random = new Random();
 
-    public PaymentService(PaymentRepository repository, ProcessedEventService processedEventService, IdempotentEventService idempotentEventService, ObjectMapper objectMapper, KafkaTopicProperties kafkaTopicProperties) {
+    public PaymentService(PaymentRepository repository,
+                          ProcessedEventService processedEventService,
+                          ObjectMapper objectMapper,
+                          KafkaTopicProperties kafkaTopicProperties) {
         this.repository = repository;
         this.processedEventService = processedEventService;
-        this.idempotentEventService = idempotentEventService;
         this.objectMapper = objectMapper;
         this.kafkaTopicProperties = kafkaTopicProperties;
     }
@@ -57,17 +54,10 @@ public class PaymentService {
 
 
     @Transactional(rollbackFor = Exception.class)
-    public void process(OrderCreatedEvent event, EventType eventType) {
+    public void process(OrderCreatedEvent event) {
         PaymentResult paymentResult = makePayment();
         persistPayment(event, paymentResult);
         persistProcessedEvent(event, paymentResult);
-        persistIdempotentEventIfPaymentSucceeded(event, paymentResult, eventType);
-    }
-
-    private void persistIdempotentEventIfPaymentSucceeded(OrderCreatedEvent event, PaymentResult paymentResult, EventType eventType) {
-        if (paymentResult.isSuccess) {
-            idempotentEventService.save(new IdempotentEvent(event.eventId(), eventType));
-        }
     }
 
     private void persistPayment(OrderCreatedEvent event, PaymentResult paymentResult) {
@@ -118,27 +108,39 @@ public class PaymentService {
     }
 
     @Transactional
-    public void processPaymentCancellation(InventoryReservationFailedEvent event, EventType eventType) {
+    public void processPaymentCancellation(InventoryReservationFailedEvent event) {
         var paymentCancellationResult = cancelPayment(event);
-        if (paymentCancellationResult.success) {
-            var idempotentEvent = new IdempotentEvent(event.eventId(), eventType);
-            idempotentEventService.save(idempotentEvent);
-        } else {
-            log.warn("Payment cancellation failed for eventId: {} - Reason: {}", event.eventId(), paymentCancellationResult.failureReason);
+        if (!paymentCancellationResult.success) {
+            throw new IllegalStateException("Payment cancellation failed for eventId=" + event.eventId()
+                    + " reason=" + paymentCancellationResult.failureReason);
         }
     }
 
 
     private PaymentCancellationResult cancelPayment(InventoryReservationFailedEvent event) {
-        var paymentOpt = repository.findByOrderId(event.orderId());
+        var paymentOpt = repository.findByOrderIdForUpdate(event.orderId());
         if (paymentOpt.isEmpty()) {
-            log.warn("No payment found to cancel for orderId = {}", event.orderId());
             return new PaymentCancellationResult(false, "Payment not found");
         }
+
         var payment = paymentOpt.get();
+        if (payment.getStatus() == PaymentStatus.CANCELLED) {
+            log.info("Payment already cancelled for orderId={}", event.orderId());
+            return new PaymentCancellationResult(true, null);
+        }
+
+        if (payment.getStatus() == PaymentStatus.FAILED) {
+            log.info("Payment already failed for orderId={}, cancellation skipped", event.orderId());
+            return new PaymentCancellationResult(true, null);
+        }
+
+        if (payment.getStatus() != PaymentStatus.COMPLETED) {
+            return new PaymentCancellationResult(false, "Unsupported payment status: " + payment.getStatus());
+        }
+
         payment.setStatus(PaymentStatus.CANCELLED);
         repository.save(payment);
-        log.warn("Payment for Order ({}) canceled because of {}", event.orderId(), event.reason());
+        log.info("Payment for orderId={} cancelled due to inventory failure: {}", event.orderId(), event.reason());
         return new PaymentCancellationResult(true, null);
     }
 
